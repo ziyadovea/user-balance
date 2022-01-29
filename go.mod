@@ -1,3 +1,3 @@
-module avito-autumn-2021-intern-assignment
+module github.com/ziyadovea/user-balance
 
 go 1.17
