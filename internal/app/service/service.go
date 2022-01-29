@@ -1,6 +1,9 @@
 package service
 
-import "github.com/ziyadovea/user-balance/model"
+import (
+	"github.com/ziyadovea/user-balance/internal/app/repository"
+	"github.com/ziyadovea/user-balance/model"
+)
 
 // User - интерфейс для списка методов с пользователями в слое сервиса
 type User interface {
@@ -16,4 +19,11 @@ type BankAccount interface {
 type Service struct {
 	User
 	BankAccount
+}
+
+func NewService(repo *repository.Repository) *Service {
+	return &Service{
+		User:        NewUserService(repo.User),
+		BankAccount: nil,
+	}
 }

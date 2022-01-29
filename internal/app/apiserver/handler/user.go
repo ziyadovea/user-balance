@@ -31,6 +31,13 @@ func (h *Handler) getAllUsers(c *gin.Context) {
 	users, err := h.Services.GetAllUsers()
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, fmt.Sprintf("error getting users: %s", err.Error()))
+		return
+	}
+
+	if users == nil {
+		c.JSON(http.StatusNotFound, map[string]interface{}{
+			"message": "no users yet",
+		})
 	}
 
 	c.JSON(http.StatusOK, users)

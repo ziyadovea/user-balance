@@ -10,8 +10,16 @@ type UserService struct {
 	repo repository.User
 }
 
+// NewUserService - конструктор для UserService
+func NewUserService(repo repository.User) *UserService {
+	return &UserService{repo: repo}
+}
+
 // CreateUser создает пользователя и возвращает либо его id, либо 0 и ошибку
 func (us *UserService) CreateUser(user *model.User) (int64, error) {
+	if err := user.Validate(); err != nil {
+		return 0, err
+	}
 	return us.repo.CreateUser(user)
 }
 

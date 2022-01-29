@@ -1,6 +1,9 @@
 package repository
 
-import "github.com/ziyadovea/user-balance/model"
+import (
+	"github.com/jmoiron/sqlx"
+	"github.com/ziyadovea/user-balance/model"
+)
 
 // User - интерфейс для списка методов с пользователями в слое репозитория
 type User interface {
@@ -16,4 +19,12 @@ type BankAccount interface {
 type Repository struct {
 	User
 	BankAccount
+}
+
+// NewRepository - конструктор для Repository
+func NewRepository(db *sqlx.DB) *Repository {
+	return &Repository{
+		User:        NewUserPostgres(db),
+		BankAccount: nil,
+	}
 }
