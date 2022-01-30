@@ -28,3 +28,9 @@ func (us *UserService) CreateUser(user *model.User) (int64, error) {
 func (us *UserService) GetAllUsers() ([]*model.User, error) {
 	return us.repo.GetAllUsers()
 }
+
+// GetUserByID возвращает либо пользователя с id == userID
+// либо nil и ошибку
+func (us *UserService) GetUserByID(userID int64) (*model.User, error) {
+	return us.repo.GetUserByID(userID)
+}

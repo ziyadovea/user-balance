@@ -34,10 +34,11 @@ func (h *Handler) getAllUsers(c *gin.Context) {
 		return
 	}
 
-	if users == nil {
+	if len(users) == 0 {
 		c.JSON(http.StatusNotFound, map[string]interface{}{
 			"message": "no users yet",
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, users)
