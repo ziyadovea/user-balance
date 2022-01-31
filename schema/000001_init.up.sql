@@ -27,7 +27,7 @@ CREATE TABLE bank_account
 CREATE TABLE transactions_history
 (
     id            SERIAL    NOT NULL PRIMARY KEY,
-    user_id       INT       NOT NULL UNIQUE,
+    user_id       INT       NOT NULL,
     start_balance BIGINT    NOT NULL,
     end_balance   BIGINT    NOT NULL,
     amount        BIGINT    NOT NULL,

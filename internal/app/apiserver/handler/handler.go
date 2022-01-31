@@ -22,9 +22,9 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	// Основные роуты для работы с балансом
 	balance := router.Group("/balance")
 	{
-		balance.GET("/", h.getUserAccountBalance)                        // Просмотр баланса
-		balance.POST("/deposit", h.depositUserAccount)                   // Пополнение
-		balance.POST("/withdraw", h.withdrawUserAccount)                 // Снятие
+		balance.GET("", h.getUserAccountBalance)                         // Просмотр баланса
+		balance.POST("/deposit", h.updateUserAccount)                    // Пополнение
+		balance.POST("/withdraw", h.updateUserAccount)                   // Снятие
 		balance.POST("/transfer", h.transferMoneyBetweenUsers)           // Перевод
 		balance.GET("/transaction_history", h.getUserTransactionHistory) // История транзакций
 	}

@@ -56,7 +56,7 @@ func getFactorByCurrency(currency string) (float64, error) {
 // Так как валюта передается как строка, используем пакет reflect, чтобы достать
 // значение поля структуры по строке
 func getField(er *exchangeRates, field string) (float64, error) {
-	r := reflect.ValueOf(er)
+	r := reflect.ValueOf(er.Rates)
 	f := reflect.Indirect(r).FieldByName(field)
 	if !f.IsValid() {
 		return 0, errors.New("this currency is not supported")
@@ -117,7 +117,7 @@ type exchangeRates struct {
 		EGP float64 `json:"EGP"`
 		ERN float64 `json:"ERN"`
 		ETB float64 `json:"ETB"`
-		EUR int     `json:"EUR"`
+		EUR float64 `json:"EUR"`
 		FJD float64 `json:"FJD"`
 		FKP float64 `json:"FKP"`
 		GBP float64 `json:"GBP"`
