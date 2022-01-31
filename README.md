@@ -191,7 +191,7 @@
 ### Схема БД: <br>
 __user <-> bank_account - one-to-one <br>__
 __user <-> transactions_history - one-to-many <br>__
-![db-shema](./images/db-schema.png)
+![db-schema](https://github.com/ziyadovea/user-balance/blob/main/images/db-schema.png)
 
 ---
 
