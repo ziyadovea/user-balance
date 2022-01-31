@@ -1,9 +1,9 @@
 .PHONY: build
 build:
-	docker-compose build user-balance
+	docker-compose build
 
 run:
-	docker-compose up user-balance
+	docker-compose up
 
 stop:
 	docker-compose down
