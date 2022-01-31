@@ -37,6 +37,14 @@ func (b *BankAccountService) WithdrawMoneyFromUser(userID int64, amount float64,
 	return b.repo.WithdrawMoneyFromUser(userID, amount, details)
 }
 
+// TransferMoneyBetweenUsers переводит amount денег со счета пользователя с fromUserID пользователю с toUserID
+func (b *BankAccountService) TransferMoneyBetweenUsers(fromUserID int64, toUserID int64, amount float64, details string) error {
+	if amount <= 0 {
+		return errors.New("the amount must be greater than zero")
+	}
+	return b.repo.TransferMoneyBetweenUsers(fromUserID, toUserID, amount, details)
+}
+
 // GetTransactionsHistory возвращает историю транзакций пользователя с userID
 func (b *BankAccountService) GetTransactionsHistory(userID int64) ([]*model.TransactionsHistory, error) {
 	return b.repo.GetTransactionsHistory(userID)

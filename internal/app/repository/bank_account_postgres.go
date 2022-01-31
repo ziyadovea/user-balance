@@ -90,6 +90,56 @@ func (b *BankAccountPostgres) WithdrawMoneyFromUser(userID int64, amount float64
 	return b.notFirstDeposit(userID, -intAmount, msg, bankAccount.Balance)
 }
 
+// TransferMoneyBetweenUsers переводит amount денег со счета пользователя с fromUserID пользователю с toUserID
+func (b *BankAccountPostgres) TransferMoneyBetweenUsers(fromUserID int64, toUserID int64, amount float64, details string) error {
+
+	// Достаем из БД запись о банковском счете пользователя-отправителя
+	fromBankAccount := &model.BankAccount{}
+	err := b.db.Get(fromBankAccount, "SELECT * FROM bank_account WHERE user_id=$1", fromUserID)
+
+	// У пользователя еще нет записи баланса в таблице
+	// Ошибка, так как снимать не с чего
+	if err != nil {
+		return errors.New("sender user does not have a bank account")
+	}
+
+	// Переведем деньги в целые числа (храним в копейках)
+	intAmount := int64(math.Round(amount * 100))
+
+	// Проверяем, достаточно ли денег у отправителя на счету
+	if fromBankAccount.Balance < intAmount {
+		return errors.New("the sender does not have enough money in the account")
+	}
+
+	// Сформируем сообщение для записи в таблицу транзакций для отправителя
+	fromMsg := fmt.Sprintf("transfer between accounts: withdraw %.2f from account", amount)
+	if len(details) != 0 {
+		fromMsg += ": " + details
+	}
+
+	// Сформируем сообщение для записи в таблицу транзакций для получателя
+	toMsg := fmt.Sprintf("transfer between accounts: deposit %.2f to account", amount)
+	if len(details) != 0 {
+		toMsg += ": " + details
+	}
+
+	// Достаем из БД запись о банковском счете пользователя-получателя
+	toBankAccount := &model.BankAccount{}
+	err = b.db.Get(toBankAccount, "SELECT * FROM bank_account WHERE user_id=$1", toUserID)
+	// Кейс 1
+	// У пользователя еще нет записи баланса в таблице
+	// Значит надо снять у отправителя, а получателю создать запись
+	if err != nil {
+		return b.firstTransfer(fromUserID, toUserID, fromMsg, toMsg, fromBankAccount.Balance, intAmount)
+	}
+
+	// Кейс 2
+	// У пользователя уже есть запись баланса в таблице
+	// Значит надо снять у отправителя, а получателю увеличить баланс
+	return b.notFirstTransfer(fromUserID, toUserID, fromMsg, toMsg, fromBankAccount.Balance, toBankAccount.Balance, intAmount)
+
+}
+
 // GetTransactionsHistory возвращает историю транзакций пользователя с userID
 func (b *BankAccountPostgres) GetTransactionsHistory(userID int64) ([]*model.TransactionsHistory, error) {
 	history := make([]*model.TransactionsHistory, 0)
@@ -100,7 +150,7 @@ func (b *BankAccountPostgres) GetTransactionsHistory(userID int64) ([]*model.Tra
 	return history, nil
 }
 
-// firstDeposit реализует первый взнос денег на счет пользователя
+// firstDeposit реализует первый взнос денег на счет пользователя (когда у пользователя нет еще записи в БД)
 func (b *BankAccountPostgres) firstDeposit(userID int64, amount int64, msg string) error {
 
 	// Надо сделать 2 вещи: обновить баланс пользователя
@@ -172,4 +222,139 @@ func (b *BankAccountPostgres) notFirstDeposit(userID int64, amount int64, msg st
 	}
 
 	return tx.Commit()
+}
+
+// firstTransfer реализует первый перевод между пользователями (когда у получателя нет еще записи в БД)
+func (b *BankAccountPostgres) firstTransfer(
+	fromUserID int64, toUserID int64,
+	fromMsg string, toMsg string,
+	fromStartBalance int64, amount int64) error {
+
+	// Надо сделать 4 вещи:
+	// 1. Снять со счета отправителя
+	// 2. Добавить соответствующую запись в таблицу историй транзакций
+	// 3. Создать запись в таблице получателю
+	// 4. Добавить соответствующую запись в таблицу историй транзакций
+	// Объединим эти операции в транзакции
+
+	tx, err := b.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	// 1. Снять со счета отправителя
+	endBalance := fromStartBalance - amount
+	_, err = tx.Exec(
+		"UPDATE bank_account SET balance=$1 WHERE user_id=$2",
+		endBalance,
+		fromUserID,
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 2. Добавить соответствующую запись в таблицу историй транзакций
+	_, err = tx.Exec(
+		"INSERT INTO transactions_history (user_id, start_balance, end_balance, amount, message, date) "+
+			"VALUES ($1, $2, $3, $4, $5, $6)",
+		fromUserID, fromStartBalance, endBalance, amount, fromMsg, time.Now(),
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 3. Создать запись в таблице получателю
+	_, err = tx.Exec(
+		"INSERT INTO bank_account (user_id, balance) VALUES ($1, $2)",
+		toUserID,
+		amount,
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 4. Добавить соответствующую запись в таблицу историй транзакций
+	_, err = tx.Exec(
+		"INSERT INTO transactions_history (user_id, start_balance, end_balance, amount, message, date) "+
+			"VALUES ($1, $2, $3, $4, $5, $6)",
+		toUserID, 0, amount, amount, toMsg, time.Now(),
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// notFirstTransfer реализует не первый перевод между пользователями
+func (b *BankAccountPostgres) notFirstTransfer(
+	fromUserID int64, toUserID int64,
+	fromMsg string, toMsg string,
+	fromStartBalance int64, toStartBalance int64,
+	amount int64) error {
+
+	// Надо сделать 4 вещи:
+	// 1. Снять со счета отправителя
+	// 2. Добавить соответствующую запись в таблицу историй транзакций
+	// 3. Положить на счет получателю
+	// 4. Добавить соответствующую запись в таблицу историй транзакций
+	// Объединим эти операции в транзакции
+
+	tx, err := b.db.Beginx()
+	if err != nil {
+		return err
+	}
+
+	// 1. Снять со счета отправителя
+	endBalance := fromStartBalance - amount
+	_, err = tx.Exec(
+		"UPDATE bank_account SET balance=$1 WHERE user_id=$2",
+		endBalance,
+		fromUserID,
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 2. Добавить соответствующую запись в таблицу историй транзакций
+	_, err = tx.Exec(
+		"INSERT INTO transactions_history (user_id, start_balance, end_balance, amount, message, date) "+
+			"VALUES ($1, $2, $3, $4, $5, $6)",
+		fromUserID, fromStartBalance, endBalance, amount, fromMsg, time.Now(),
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 3. Положить на счет получателю
+	endBalance = toStartBalance + amount
+	_, err = tx.Exec(
+		"UPDATE bank_account set balance=$1 WHERE user_id=$2",
+		endBalance,
+		toUserID,
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 4. Добавить соответствующую запись в таблицу историй транзакций
+	_, err = tx.Exec(
+		"INSERT INTO transactions_history (user_id, start_balance, end_balance, amount, message, date) "+
+			"VALUES ($1, $2, $3, $4, $5, $6)",
+		toUserID, toStartBalance, endBalance, amount, toMsg, time.Now(),
+	)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+
 }
