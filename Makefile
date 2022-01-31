@@ -1,13 +1,12 @@
 .PHONY: build
 build:
-	go build -o user-balance -v ./cmd/apiserver
+	docker-compose build user-balance
 
 run:
-	./user-balance
+	docker-compose up user-balance
 
-.PHONY: test
-test:
-	go test -v -race -timeout 30s ./...
+stop:
+	docker-compose down
 
 migrate-up:
 	migrate -path ./schema -database 'postgres://postgres:0000@localhost:5436/postgres?sslmode=disable' up
@@ -15,4 +14,6 @@ migrate-up:
 migrate-down:
 	migrate -path ./schema -database 'postgres://postgres:0000@localhost:5436/postgres?sslmode=disable' down
 
-.DEFAULT_GOAL := build
+.PHONY: test
+test:
+	go test -v -race -timeout 30s ./...

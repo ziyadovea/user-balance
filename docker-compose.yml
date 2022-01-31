@@ -1,0 +1,23 @@
+version: '3.9'
+
+services:
+  todo-app:
+    build: ./
+    command: ./cmd/apiserver/wait-for-postgres.sh db ./user-balance
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    environment:
+      - DB_PASSWORD=0000
+      - API_KEY=31c0cfcef7e0f30ad864784889d0e12e
+
+  db:
+    restart: always
+    image: postgres:latest
+    volumes:
+      - ./.database/postgres/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=0000
+    ports:
+      - 5436:5432
