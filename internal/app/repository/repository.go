@@ -17,6 +17,7 @@ type BankAccount interface {
 	GetBalanceByUserID(userID int64, factor float64) (string, error)
 	DepositMoneyToUser(userID int64, amount float64, details string) error
 	WithdrawMoneyFromUser(userID int64, amount float64, details string) error
+	GetTransactionsHistory(userID int64) ([]*model.TransactionsHistory, error)
 }
 
 // Repository — отвечает за получение данных из внешних источников, такие как база данных, api, локальное хранилище и пр.

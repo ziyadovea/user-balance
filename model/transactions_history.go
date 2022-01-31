@@ -4,8 +4,8 @@ import "time"
 
 // TransactionsHistory - структура для представления истории денежных переводов
 type TransactionsHistory struct {
-	ID           int64     `json:"id" db:"id"`
-	UserID       int64     `json:"user_id" db:"user_id"`
+	ID           int64     `json:"-" db:"id"`
+	UserID       int64     `json:"-" db:"user_id"`
 	StartBalance int64     `json:"start_balance" db:"start_balance"`
 	EndBalance   int64     `json:"end_balance" db:"end_balance"`
 	Amount       int64     `json:"amount" db:"amount"`

@@ -90,6 +90,16 @@ func (b *BankAccountPostgres) WithdrawMoneyFromUser(userID int64, amount float64
 	return b.notFirstDeposit(userID, -intAmount, msg, bankAccount.Balance)
 }
 
+// GetTransactionsHistory возвращает историю транзакций пользователя с userID
+func (b *BankAccountPostgres) GetTransactionsHistory(userID int64) ([]*model.TransactionsHistory, error) {
+	history := make([]*model.TransactionsHistory, 0)
+	err := b.db.Select(&history, "SELECT * FROM transactions_history WHERE user_id=$1", userID)
+	if err != nil {
+		return nil, err
+	}
+	return history, nil
+}
+
 // firstDeposit реализует первый взнос денег на счет пользователя
 func (b *BankAccountPostgres) firstDeposit(userID int64, amount int64, msg string) error {
 

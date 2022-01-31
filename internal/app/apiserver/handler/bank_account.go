@@ -144,5 +144,23 @@ func (h *Handler) getUserTransactionHistory(c *gin.Context) {
 		UserID int64 `json:"user_id"`
 	}
 
-	// req := &Request{}
+	req := &Request{}
+	if err := c.BindJSON(req); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, fmt.Sprintf("incorrect request body: %s", err.Error()))
+		return
+	}
+
+	_, err := h.Services.GetUserByID(req.UserID)
+	if err != nil {
+		newErrorResponse(c, http.StatusNotFound, "this user does not exist in the system")
+		return
+	}
+
+	history, err := h.Services.GetTransactionsHistory(req.UserID)
+	if len(history) == 0 {
+		newErrorResponse(c, http.StatusNotFound, "there is no transaction history for this user")
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
 }
