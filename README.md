@@ -186,6 +186,12 @@
 * Graceful Shutdown
 * В БД и внутри структур языка Go баланс хранится в целых числах, чтобы не терять точность при работе с вещественными числами
 * Приложение запускается на порту 8080
+* Тестирование проводилось через Postman
+
+### Схема БД: <br>
+__user <-> bank_account - one-to-one <br>__
+__user <-> transactions_history - one-to-many <br>__
+![db-shema](./images/db-schema.png)
 
 ---
 
