@@ -20,13 +20,19 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.Default()
 
 	// Основные роуты для работы с балансом
-	balance := router.Group("/balance")
+	bankAccount := router.Group("/bank_account")
 	{
-		balance.GET("", h.getUserAccountBalance)                         // Просмотр баланса
-		balance.POST("/deposit", h.updateUserAccount)                    // Пополнение
-		balance.POST("/withdraw", h.updateUserAccount)                   // Снятие
-		balance.POST("/transfer", h.transferMoneyBetweenUsers)           // Перевод
-		balance.GET("/transaction_history", h.getUserTransactionHistory) // История транзакций
+		users := bankAccount.Group("/users/:user_id")
+		{
+			balance := users.Group("/balance")
+			{
+				balance.GET("", h.getUserAccountBalance)                         // Просмотр баланса
+				balance.POST("/deposit", h.updateUserAccount)                    // Пополнение
+				balance.POST("/withdraw", h.updateUserAccount)                   // Снятие
+				balance.POST("/transfer", h.transferMoneyBetweenUsers)           // Перевод
+				balance.GET("/transaction_history", h.getUserTransactionHistory) // История транзакций
+			}
+		}
 	}
 
 	// Дополнительные роуты для удобства работы с пользователями
